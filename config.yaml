@@ -1,0 +1,23 @@
+groups:
+  servers:
+    prefixes:
+      - "149.171.126.0/24"
+      - "59.166.0.0/24"
+    output_range:
+      start: "10.0.0.0"
+      end: "10.0.0.255"
+
+  users:
+    prefixes:
+      - "192.168.0.0/16"
+      - "10.40.170.0/24"
+    output_range:
+      start: "10.0.1.0"
+      end: "10.0.1.255"
+
+  external:
+    prefixes:
+      - "175.45.176.0/24"
+    output_range:
+      start: "10.0.2.0"
+      end: "10.0.2.255"
