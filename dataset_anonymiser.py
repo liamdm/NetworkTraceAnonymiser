@@ -125,45 +125,42 @@ class DatasetAnonymiser:
             df[f"{col}_anon"] = df[col].apply(self.anonymise_ip)
         return df
 
-    def add_groups(self, df: pd.DataFrame, unknown_label: Optional[str] = None) -> pd.DataFrame:
+    def add_groups(
+        self,
+        df: pd.DataFrame,
+        columns: Optional[List[str]] = None,
+        unknown_label: Optional[str] = None
+    ) -> pd.DataFrame:
         """
         Add logical group columns to an existing (possibly anonymised) trace DataFrame.
 
-        This resolves groups from:
-          1) Original IPs (via prefix tree), if present; otherwise
-          2) Anonymised IPs, by mapping the IP into a configured output_range.
+        This version enforces explicit column labeling — it requires that certain
+        columns (defined in `required_columns`) are present in the input DataFrame.
 
-        Columns considered "IP-like":
-          - Any column ending with _ip or _addr (originals)
-          - Any column ending with _anon (anonymised outputs)
-
-        :param df: DataFrame containing IP or anonymised IP columns.
+        :param df: DataFrame containing explicitly labeled IP or anonymised IP columns.
+        :param columns: List of column names that must exist in the DataFrame.
         :param unknown_label: Optional label to use when a value cannot be mapped.
         :return: A new DataFrame with added *_group columns.
         """
+        if columns is None:
+            raise ValueError("You must provide `columns` listing expected IP columns.")
+
+        missing = [c for c in columns if c not in df.columns]
+        if missing:
+            raise ValueError(f"Missing required columns: {missing}")
+
         df = df.copy()
 
         def resolve_group(value: str) -> Optional[str]:
-            # Try original-IP grouping first
             g = self._g(value)
             if g is not None:
                 return g
-            # Fallback to anonymised-IP grouping via output ranges
             g2 = self._g_from_output(value)
             if g2 is not None:
                 return g2
             return unknown_label
 
-        ip_like_cols = [
-            c for c in df.columns
-            if c.endswith("_ip") or c.endswith("_addr") or c.endswith("_anon")
-        ]
-
-        if not ip_like_cols:
-            warnings.warn("No IP-like columns found to add group information.")
-            return df
-
-        for col in ip_like_cols:
+        for col in columns:
             df[f"{col}_group"] = df[col].apply(resolve_group)
 
         return df
